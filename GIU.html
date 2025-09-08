@@ -70,7 +70,6 @@
   </div>
 </div>
 
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -80,12 +79,8 @@
   let directionalLight, ambientLight;
   let model, blackModel;
   let shadowBias = 0.0005;
-
-
   let rotateDirection = 0;
   const rotateSpeed = 0.05;
-
- 
   let repeatInterval = null;
 
   init();
@@ -108,7 +103,7 @@
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
 
-    // Lights
+    
     directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
     directionalLight.position.set(5, 10, 5);
     directionalLight.castShadow = true;
@@ -127,47 +122,38 @@
     ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambientLight);
 
-    // Ground
-    // โหลด texture พื้นจากไฟล์ JPG
-const textureLoader = new THREE.TextureLoader();
-const floorTexture = textureLoader.load('468909928_1744389426396838_530694724198012768_n.jpg');
+   
+    const textureLoader = new THREE.TextureLoader();
+    const floorTexture = textureLoader.load('468909928_1744389426396838_530694724198012768_n.jpg');
+    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+   
+    const planeMaterial = new THREE.MeshStandardMaterial({
+      map: floorTexture,
+      roughness: 1,
+      metalness: 0
+    });
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), planeMaterial);
+    plane.rotation.x = -Math.PI / 2;
+    plane.receiveShadow = true;
+    scene.add(plane);
 
-
-
-
-const planeMaterial = new THREE.MeshStandardMaterial({
-  map: floorTexture,
-  roughness: 1,
-  metalness: 0
-});
-
-// สร้าง plane แล้วใส่เข้าฉาก
-const plane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), planeMaterial);
-plane.rotation.x = -Math.PI / 2; // หมุนให้นอนราบ
-plane.receiveShadow = true;
-scene.add(plane);
-
-    // EXR background/environment (ensure the file exists and is served via HTTP)
+   
     const exrLoader = new THREE.EXRLoader();
     exrLoader.load(
       'unfinished_office_night_4k.exr',
       function (texture) {
         texture.mapping = THREE.EquirectangularReflectionMapping;
         scene.background = texture;
-        scene.environment = texture;
+        scene.environment = texture;   
       },
       undefined,
       function (err) { console.error('EXR load error:', err); }
     );
 
-    // Optional textured backdrop (*** make sure to use the correct filename WITH extension ***)
-    const bgLoader = new THREE.TextureLoader();
     
-     
-
-    // GLTF/GLB loader
     const loader = new THREE.GLTFLoader();
 
+    
     loader.load(
       'five2.glb',
       function (gltf) {
@@ -175,13 +161,12 @@ scene.add(plane);
         model.scale.set(1, 1, 1);
         model.position.set(-5, 0, 0);
         model.traverse(node => {
-          if (node.isMesh) {
+          if (node.isMesh && node.material) {
             node.castShadow = true;
             node.receiveShadow = true;
-            if (node.material) {
-              node.material.metalness = 0.5;
-              node.material.roughness = 0.3;
-            }
+            node.material.metalness = 1.0;
+            node.material.roughness = 0.1;
+            node.material.envMapIntensity = 1.0;
           }
         });
         scene.add(model);
@@ -190,6 +175,7 @@ scene.add(plane);
       function (err) { console.error('five2.glb load error:', err); }
     );
 
+    
     loader.load(
       'black.glb',
       function (gltf) {
@@ -197,7 +183,13 @@ scene.add(plane);
         blackModel.position.set(-5, 1, -4);
         blackModel.scale.set(5, 5, 5);
         blackModel.traverse(node => {
-          if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; }
+          if (node.isMesh && node.material) {
+            node.castShadow = true;
+            node.receiveShadow = true;
+            node.material.metalness = 1.0;
+            node.material.roughness = 0.1;
+            node.material.envMapIntensity = 1.0;
+          }
         });
         scene.add(blackModel);
       },
@@ -205,6 +197,7 @@ scene.add(plane);
       function (err) { console.error('black.glb load error:', err); }
     );
 
+    
     loader.load(
       'wanted.glb',
       function (gltf) {
@@ -212,7 +205,13 @@ scene.add(plane);
         newModel.scale.set(5, 5, 5);
         newModel.position.set(6, 0, 0);
         newModel.traverse(node => {
-          if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; }
+          if (node.isMesh && node.material) {
+            node.castShadow = true;
+            node.receiveShadow = true;
+            node.material.metalness = 1.0;
+            node.material.roughness = 0.1;
+            node.material.envMapIntensity = 1.0;
+          }
         });
         scene.add(newModel);
       },
@@ -220,14 +219,14 @@ scene.add(plane);
       function (err) { console.error('wanted.glb load error:', err); }
     );
 
-    // Resize
+    
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Keyboard controls
+    
     window.addEventListener('keydown', (event) => {
       if (!model) return;
       switch (event.key) {
@@ -242,22 +241,21 @@ scene.add(plane);
       }
     });
 
-    // Initial UI values
+
     document.getElementById('lightX').innerText = directionalLight.position.x.toFixed(2);
     document.getElementById('lightY').innerText = directionalLight.position.y.toFixed(2);
 
-    // Rotate-light buttons (hold to rotate)
+    
     const btnRotateCW = document.getElementById('btnRotateCW');
     const btnRotateCCW = document.getElementById('btnRotateCCW');
     btnRotateCW.addEventListener('mousedown', () => { rotateDirection = 1; });
     btnRotateCW.addEventListener('mouseup',   () => { rotateDirection = 0; });
     btnRotateCW.addEventListener('mouseleave',() => { rotateDirection = 0; });
-
     btnRotateCCW.addEventListener('mousedown', () => { rotateDirection = -1; });
     btnRotateCCW.addEventListener('mouseup',   () => { rotateDirection = 0; });
     btnRotateCCW.addEventListener('mouseleave',() => { rotateDirection = 0; });
 
-    // Repeat buttons (+/-) on hold
+    
     const repeatButtons = document.querySelectorAll('.repeat-btn');
     repeatButtons.forEach(btn => {
       btn.addEventListener('mousedown', () => {
@@ -310,7 +308,7 @@ scene.add(plane);
     const newAngle = currentAngle + angle;
     directionalLight.position.x = radius * Math.cos(newAngle);
     directionalLight.position.z = radius * Math.sin(newAngle);
-    // UI updates
+    
     document.getElementById('lightX').innerText = directionalLight.position.x.toFixed(2);
     document.getElementById('lightY').innerText = directionalLight.position.y.toFixed(2);
     let degrees = (newAngle * 180 / Math.PI) % 360; if (degrees < 0) degrees += 360;
